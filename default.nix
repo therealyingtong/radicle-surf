@@ -1,17 +1,26 @@
+{ sources ? import ./nix/sources.nix
+, pkgs ? import sources.nixpkgs {
+    overlays = [ (import sources.rust-overlay) ];
+  }
+}:
 let
-  moz_overlay = import (builtins.fetchTarball https://github.com/mozilla/nixpkgs-mozilla/archive/4521bc61c2332f41e18664812a808294c8c78580.tar.gz);
-  nixpkgs = import <nixpkgs> { overlays = [ moz_overlay ]; };
+    rustToolChain = (pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain);
+    rust = rustToolChain.override {
+        extensions = [ "rust-src" "rust-analysis" ];
+    };
 in
-with nixpkgs;
-stdenv.mkDerivation {
-    name = "radicle-surf-dev";
+with pkgs;
+mkShell {
+    name = "radicle-surf";
     buildInputs = [
-        (nixpkgs.rustChannelOf { rustToolChain = ./rust-toolchain; }).rust
+        cargo-expand
+        cargo-watch
         # gnuplot for benchmark purposes
         gnuplot
         pkgconfig
-        zlib
         openssl
-        rustup
+        ripgrep
+        rust
+        zlib
     ];
 }
